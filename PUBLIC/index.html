@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador CAD Profesional</title>
+    
+    <!-- Autodesk Viewer CSS -->
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css" type="text/css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* Header principal */
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        /* Barra de herramientas */
+        .toolbar {
+            background: #2c3e50;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 5px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+        }
+
+        .toolbar-group label {
+            font-size: 12px;
+            color: #bdc3c7;
+            font-weight: 500;
+        }
+
+        /* Botones */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        /* Input de archivo personalizado */
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-container input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        /* Layout principal */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+        }
+
+        /* Panel lateral */
+        .sidebar {
+            width: 300px;
+            background: #34495e;
+            border-right: 1px solid #445566;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            border: none;
+        }
+
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #445566;
+        }
+
+        .sidebar-section h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #ecf0f1;
+            font-weight: 500;
+        }
+
+        /* Controles del sidebar */
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #bdc3c7;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: #556983;
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .control-group select {
+            width: 100%;
+            padding: 8px;
+            background: #556983;
+            color: white;
+            border: 1px solid #445566;
+            border-radius: 4px;
+        }
+
+        /* Área del viewer */
+        .viewer-container {
+            flex: 1;
+            position: relative;
+            background: #2c3e50;
+        }
+
+        #viewer {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #34495e 0%, #2c3e50 100%);
+        }
+
+        /* Modal de progreso */
+        .progress-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .progress-content {
+            background: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #556983;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        /* Modal de información */
+        .info-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .info-content {
+            background: #34495e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .info-content h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+
+        .info-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-content td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #556983;
+        }
+
+        .info-content td:first-child {
+            font-weight: bold;
+            color: #bdc3c7;
+            width: 40%;
+        }
+
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            font-weight: 500;
+            z-index: 3000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            min-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.warning {
+            background: #f39c12;
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+
+        /* Estados de carga */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(44, 62, 80, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1500;
+        }
+
+        .spinner {
+            border: 4px solid #556983;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 250px;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .toolbar-group {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Toggle sidebar button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 50%;
+            right: -15px;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 60px;
+            background: #3498db;
+            border: none;
+            border-radius: 0 15px 15px 0;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1001;
+        }
+
+        /* Measurement display */
+        .measurement-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(52, 73, 94, 0.9);
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: none;
+            color: #ecf0f1;
+            font-family: monospace;
+            font-size: 14px;
+            border: 1px solid #3498db;
+        }
+
+        .file-info {
+            background: rgba(52, 73, 94, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>🔧 Visualizador CAD Profesional</h1>
+        <p>Soporta formatos: DWG, DXF, STEP, IPT, IGS, STL</p>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-group">
+            <label>Archivo:</label>
+            <div class="file-input-container">
+                <input type="file" id="fileInput" accept=".dwg,.dxf,.step,.stp,.ipt,.igs,.iges,.stl" multiple>
+                <button class="btn btn-primary">📁 Cargar Archivo</button>
+            </div>
+        </div>
+
+        <div class="toolbar-group">
+            <label>Vista:</label>
+            <button class="btn btn-secondary" id="fitToViewBtn">🔍 Ajustar</button>
+            <button class="btn btn-secondary" id="homeViewBtn">🏠 Inicio</button>
+            <button class="btn btn-secondary" id="isolateBtn">👁️ Aislar</button>
+        </div>
+
+        <div class="toolbar-group">
+            <label>Herramientas:</label>
+            <button class="btn btn-secondary" id="measureBtn">📏 Medir</button>
+            <button class="btn btn-secondary" id="sectionBtn">✂️ Sección</button>
+            <button class="btn btn-secondary" id="explodeBtn">💥 Explotar</button>
+        </div>
+
+        <div class="toolbar-group">
+            <label>Exportar:</label>
+            <button class="btn btn-success" id="screenshotBtn">📷 Captura</button>
+            <button class="btn btn-success" id="infoBtn">ℹ️ Propiedades</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <button class="sidebar-toggle" id="sidebarToggle">◀</button>
+            
+            <div class="sidebar-section">
+                <h3>🎮 Navegación</h3>
+                <div class="control-group">
+                    <label>Velocidad de navegación:</label>
+                    <input type="range" id="navSpeedSlider" min="0.1" max="2" step="0.1" value="1">
+                    <span id="navSpeedValue">1.0x</span>
+                </div>
+                <div class="control-group">
+                    <label>Modo de navegación:</label>
+                    <select id="navModeSelect">
+                        <option value="orbit">Órbita</option>
+                        <option value="firstPerson">Primera Persona</option>
+                        <option value="walk">Caminar</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>🎨 Visualización</h3>
+                <div class="control-group">
+                    <label>Modo de renderizado:</label>
+                    <select id="renderModeSelect">
+                        <option value="shaded">Sombreado</option>
+                        <option value="wireframe">Estructura</option>
+                        <option value="shadedWithEdges">Sombreado con Bordes</option>
+                        <option value="conceptual">Conceptual</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Transparencia global:</label>
+                    <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="1">
+                    <span id="opacityValue">100%</span>
+                </div>
+                <div class="control-group">
+                    <label>Ambiente:</label>
+                    <select id="environmentSelect">
+                        <option value="Prism">Prisma</option>
+                        <option value="Infinity Pool">Piscina Infinita</option>
+                        <option value="Photo Booth">Cabina de Fotos</option>
+                        <option value="Tranquility">Tranquilidad</option>
+                        <option value="Grey Room">Sala Gris</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>💡 Iluminación</h3>
+                <div class="control-group">
+                    <label>Intensidad de luz:</label>
+                    <input type="range" id="lightIntensitySlider" min="0" max="10" step="0.5" value="5">
+                    <span id="lightIntensityValue">5.0</span>
+                </div>
+                <div class="control-group">
+                    <button class="btn btn-secondary" id="toggleShadowsBtn" style="width: 100%;">🌒 Alternar Sombras</button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>📊 Estadísticas</h3>
+                <div id="modelStats">
+                    <div class="file-info">
+                        <div><strong>Estado:</strong> Sin modelo cargado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Viewer Container -->
+        <div class="viewer-container">
+            <div id="viewer"></div>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <div>Procesando archivo CAD...</div>
+            </div>
+            <div class="measurement-display" id="measurementDisplay"></div>
+        </div>
+    </div>
+
+    <!-- Modales -->
+    <!-- Progress Modal -->
+    <div class="progress-modal" id="progressModal">
+        <div class="progress-content">
+            <h3 id="progressTitle">Procesando archivo...</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">0%</div>
+            <button class="btn btn-danger" id="cancelUploadBtn" style="margin-top: 15px;">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div class="info-modal" id="infoModal">
+        <div class="info-content">
+            <h3>📋 Propiedades del Modelo</h3>
+            <table id="infoTable">
+                <!-- Contenido dinámico -->
+            </table>
+            <button class="btn btn-primary" id="closeInfoBtn" style="margin-top: 20px; width: 100%;">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
+    <!-- Autodesk Viewer JavaScript -->
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js"></script>
+
+    <script>
+        // ============================================================================
+        // CAD VIEWER PROFESSIONAL - CONFIGURACIÓN Y CLASE PRINCIPAL
+        // ============================================================================
+
+        class CADViewer {
+            constructor() {
+                this.viewer = null;
+                this.currentModel = null;
+                this.isModelLoaded = false;
+                this.measurementTool = null;
+                this.sectionTool = null;
+                this.currentToken = null;
+                this.uploadCancelled = false;
+                this.currentUpload = null;
+                
+                // Configuración de formatos soportados
+                this.supportedFormats = {
+                    'dwg': { type: '2d', description: 'AutoCAD Drawing' },
+                    'dxf': { type: '2d', description: 'Drawing Exchange Format' },
+                    'step': { type: '3d', description: 'STEP 3D Model' },
+                    'stp': { type: '3d', description: 'STEP 3D Model' },
+                    'ipt': { type: '3d', description: 'Inventor Part' },
+                    'igs': { type: '3d', description: 'IGES 3D Model' },
+                    'iges': { type: '3d', description: 'IGES 3D Model' },
+                    'stl': { type: '3d', description: 'STL Mesh' }
+                };
+
+                this.init();
+            }
+
+            // ========================================================================
+            // INICIALIZACIÓN Y CONFIGURACIÓN
+            // ========================================================================
+
+            async init() {
+                try {
+                    this.showNotification('Inicializando visualizador CAD...', 'info');
+                    
+                    // Obtener token de acceso
+                    await this.getAccessToken();
+                    
+                    // Inicializar Autodesk Viewer
+                    await this.initializeViewer();
+                    
+                    // Configurar event listeners
+                    this.setupEventListeners();
+                    
+                    this.showNotification('Visualizador CAD listo para usar', 'success');
+                    
+                } catch (error) {
+                    console.error('Error inicializando el visualizador:', error);
+                    this.showNotification('Error al inicializar el visualizador: ' + error.message, 'error');
+                }
+            }
+
+            async getAccessToken() {
+                try {
+                    const response = await fetch('/api/auth/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error obteniendo token: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    this.currentToken = data.access_token;
+                    console.log('✅ Token obtenido del servidor');
+                    
+                } catch (error) {
+                    console.error('❌ Error obteniendo token:', error);
+                    throw new Error('No se pudo obtener token de autenticación');
+                }
+            }
+
+            async initializeViewer() {
+                return new Promise((resolve, reject) => {
+                    const options = {
+                        env: 'AutodeskProduction',
+                        api: 'derivativeV2',
+                        getAccessToken: (callback) => {
+                            callback(this.currentToken, 3600);
+                        }
+                    };
+
+                    Autodesk.Viewing.Initializer(options, () => {
+                        const config = {
+                            extensions: [
+                                'Autodesk.DocumentBrowser',
+                                'Autodesk.Measure',
+                                'Autodesk.Section',
+                                'Autodesk.Explode',
+                                'Autodesk.ModelStructure',
+                                'Autodesk.Properties',
+                                'Autodesk.ViewCubeUi',
+                                'Autodesk.FullScreen'
+                            ]
+                        };
+
+                        this.viewer = new Autodesk.Viewing.GuiViewer3D(
+                            document.getElementById('viewer'),
+                            config
+                        );
+
+                        const startCode = this.viewer.start();
+                        if (startCode > 0) {
+                            reject(new Error('Error iniciando el viewer: ' + startCode));
+                            return;
+                        }
+
+                        // Configurar eventos del viewer
+                        this.setupViewerEvents();
+                        
+                        resolve();
+                    });
+                });
+            }
+
+            setupViewerEvents() {
+                if (!this.viewer) return;
+
+                // Evento cuando el modelo se carga completamente
+                this.viewer.addEventListener(
+                    Autodesk.Viewing.GEOMETRY_LOADED_EVENT,
+                    (event) => {
+                        this.isModelLoaded = true;
+                        this.hideLoading();
+                        this.showNotification('Modelo CAD cargado correctamente', 'success');
+                        this.updateModelStats();
+                        this.viewer.fitToView();
+                    }
+                );
+
+                // Evento de selección
+                this.viewer.addEventListener(
+                    Autodesk.Viewing.SELECTION_CHANGED_EVENT,
+                    (event) => {
+                        this.onSelectionChanged(event);
+                    }
+                );
+
+                // Evento de error
+                this.viewer.addEventListener(
+                    Autodesk.Viewing.ERROR_EVENT,
+                    (event) => {
+                        console.error('Viewer error:', event);
+                        this.hideLoading();
+                        this.showNotification('Error en el visualizador: ' + event.message, 'error');
+                    }
+                );
+
+                // Eventos de herramientas
+                this.viewer.addEventListener(
+                    Autodesk.Viewing.TOOL_CHANGE_EVENT,
+                    (event) => {
+                        this.onToolChanged(event);
+                    }
+                );
+            }
+
+            // ========================================================================
+            // MANEJO DE ARCHIVOS Y CARGA
+            // ========================================================================
+
+            setupEventListeners() {
+                // Input de archivo
+                const fileInput = document.getElementById('fileInput');
+                const fileButton = fileInput.nextElementSibling;
+                
+                fileButton.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+
+                // Botones de la toolbar
+                document.getElementById('fitToViewBtn').addEventListener('click', () => {
+                    if (this.viewer && this.isModelLoaded) {
+                        this.viewer.fitToView();
+                    }
+                });
+
+                document.getElementById('homeViewBtn').addEventListener('click', () => {
+                    if (this.viewer && this.isModelLoaded) {
+                        this.viewer.setViewFromArray(this.viewer.getHomeView().getState());
+                    }
+                });
+
+                document.getElementById('measureBtn').addEventListener('click', () => {
+                    this.toggleMeasureTool();
+                });
+
+                document.getElementById('sectionBtn').addEventListener('click', () => {
+                    this.toggleSectionTool();
+                });
+
+                document.getElementById('explodeBtn').addEventListener('click', () => {
+                    this.toggleExplode();
+                });
+
+                document.getElementById('screenshotBtn').addEventListener('click', () => {
+                    this.takeScreenshot();
+                });
+
+                document.getElementById('infoBtn').addEventListener('click', () => {
+                    this.showModelInfo();
+                });
+
+                document.getElementById('isolateBtn').addEventListener('click', () => {
+                    this.toggleIsolate();
+                });
+
+                // Sidebar controls
+                this.setupSidebarControls();
+
+                // Modal controls
+                document.getElementById('closeInfoBtn').addEventListener('click', () => {
+                    document.getElementById('infoModal').style.display = 'none';
+                });
+
+                document.getElementById('cancelUploadBtn').addEventListener('click', () => {
+                    this.cancelUpload();
+                });
+
+                // Sidebar toggle
+                document.getElementById('sidebarToggle').addEventListener('click', () => {
+                    this.toggleSidebar();
+                });
+
+                // Cerrar modales al hacer clic fuera
+                window.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('info-modal') || 
+                        e.target.classList.contains('progress-modal')) {
+                        e.target.style.display = 'none';
+                    }
+                });
+            }
+
+            setupSidebarControls() {
+                // Navigation speed
+                const navSpeedSlider = document.getElementById('navSpeedSlider');
+                const navSpeedValue = document.getElementById('navSpeedValue');
+                
+                navSpeedSlider.addEventListener('input', (e) => {
+                    const speed = parseFloat(e.target.value);
+                    navSpeedValue.textContent = speed.toFixed(1) + 'x';
+                    if (this.viewer) {
+                        this.viewer.setNavigationSpeed(speed);
+                    }
+                });
+
+                // Navigation mode
+                document.getElementById('navModeSelect').addEventListener('change', (e) => {
+                    if (this.viewer) {
+                        const navTool = this.viewer.getToolController().getTool('navigate');
+                        if (navTool) {
+                            navTool.setRequestMode(e.target.value);
+                        }
+                    }
+                });
+
+                // Render mode
+                document.getElementById('renderModeSelect').addEventListener('change', (e) => {
+                    if (this.viewer && this.isModelLoaded) {
+                        const renderMode = e.target.value;
+                        switch (renderMode) {
+                            case 'wireframe':
+                                this.viewer.setDisplayMode(Autodesk.Viewing.DisplayMode.Wireframe);
+                                break;
+                            case 'shadedWithEdges':
+                                this.viewer.setDisplayMode(Autodesk.Viewing.DisplayMode.ShadedWithEdges);
+                                break;
+                            case 'conceptual':
+                                this.viewer.setDisplayMode(Autodesk.Viewing.DisplayMode.Conceptual);
+                                break;
+                            default:
+                                this.viewer.setDisplayMode(Autodesk.Viewing.DisplayMode.Shaded);
+                        }
+                    }
+                });
+
+                // Opacity
+                const opacitySlider = document.getElementById('opacitySlider');
+                const opacityValue = document.getElementById('opacityValue');
+                
+                opacitySlider.addEventListener('input', (e) => {
+                    const opacity = parseFloat(e.target.value);
+                    opacityValue.textContent = Math.round(opacity * 100) + '%';
+                    if (this.viewer && this.isModelLoaded) {
+                        this.viewer.setGhosting(opacity < 1);
+                        this.viewer.setGhostingOpacity(opacity);
+                    }
+                });
+
+                // Environment
+                document.getElementById('environmentSelect').addEventListener('change', (e) => {
+                    if (this.viewer && this.isModelLoaded) {
+                        this.viewer.setLightPreset(e.target.value);
+                    }
+                });
+
+                // Light intensity
+                const lightSlider = document.getElementById('lightIntensitySlider');
+                const lightValue = document.getElementById('lightIntensityValue');
+                
+                lightSlider.addEventListener('input', (e) => {
+                    const intensity = parseFloat(e.target.value);
+                    lightValue.textContent = intensity.toFixed(1);
+                    if (this.viewer && this.isModelLoaded) {
+                        this.viewer.setLightIntensity(intensity);
+                    }
+                });
+
+                // Shadows toggle
+                document.getElementById('toggleShadowsBtn').addEventListener('click', () => {
+                    if (this.viewer && this.isModelLoaded) {
+                        const shadowsEnabled = this.viewer.prefs.get('ambientShadows');
+                        this.viewer.prefs.set('ambientShadows', !shadowsEnabled);
+                        this.viewer.impl.invalidate(true);
+                    }
+                });
+            }
+
+            async handleFileSelect(event) {
+                const files = event.target.files;
+                if (!files.length) return;
+
+                const file = files[0];
+                
+                try {
+                    // Validar formato de archivo
+                    const fileExtension = this.getFileExtension(file.name);
+                    if (!this.supportedFormats[fileExtension]) {
+                        throw new Error(`Formato de archivo no soportado: .${fileExtension}`);
+                    }
+
+                    // Validar tamaño de archivo (máximo 100MB)
+                    if (file.size > 100 * 1024 * 1024) {
+                        throw new Error('El archivo es demasiado grande. Máximo permitido: 100MB');
+                    }
+
+                    this.showProgress('Subiendo archivo...', 0);
+                    this.uploadCancelled = false;
+
+                    // Procesar archivo
+                    await this.uploadAndConvertFile(file);
+
+                } catch (error) {
+                    console.error('Error procesando archivo:', error);
+                    this.hideProgress();
+                    this.showNotification('Error: ' + error.message, 'error');
+                }
+            }
+
+            async uploadAndConvertFile(file) {
+                try {
+                    // Paso 1: Subir archivo
+                    const uploadResult = await this.uploadFile(file);
+                    if (this.uploadCancelled) return;
+
+                    // Paso 2: Convertir archivo
+                    const urn = await this.convertFile(uploadResult);
+                    if (this.uploadCancelled) return;
+
+                    // Paso 3: Cargar en el viewer
+                    await this.loadModelInViewer(urn);
+                    
+                    this.hideProgress();
+                    
+                } catch (error) {
+                    this.hideProgress();
+                    throw error;
+                }
+            }
+
+            async uploadFile(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    
+                    // Configurar progreso de subida
+                    xhr.upload.addEventListener('progress', (e) => {
+                        if (e.lengthComputable) {
+                            const progress = (e.loaded / e.total) * 100;
+                            this.updateProgress('Subiendo archivo...', progress);
+                        }
+                    });
+
+                    xhr.addEventListener('load', () => {
+                        if (xhr.status === 200) {
+                            try {
+                                const result = JSON.parse(xhr.responseText);
+                                resolve(result);
+                            } catch (error) {
+                                reject(new Error('Error parseando respuesta del servidor'));
+                            }
+                        } else {
+                            try {
+                                const error = JSON.parse(xhr.responseText);
+                                reject(new Error(error.error || `Error HTTP ${xhr.status}`));
+                            } catch {
+                                reject(new Error(`Error HTTP ${xhr.status}`));
+                            }
+                        }
+                    });
+
+                    xhr.addEventListener('error', () => {
+                        reject(new Error('Error de red durante la subida'));
+                    });
+
+                    xhr.addEventListener('abort', () => {
+                        reject(new Error('Subida cancelada'));
+                    });
+
+                    xhr.open('POST', '/api/upload');
+                    xhr.send(formData);
+
+                    // Guardar referencia para poder cancelar
+                    this.currentUpload = xhr;
+                });
+            }
+
+            async convertFile(uploadResult) {
+                const urn = uploadResult.urn;
+                
+                // Verificar estado de conversión periódicamente
+                return new Promise((resolve, reject) => {
+                    const checkStatus = async () => {
+                        try {
+                            if (this.uploadCancelled) {
+                                reject(new Error('Conversión cancelada'));
+                                return;
+                            }
+
+                            const response = await fetch(`/api/status/${urn}`);
+                            
+                            if (!response.ok) {
+                                throw new Error(`Error verificando estado: ${response.status}`);
+                            }
+
+                            const status = await response.json();
+                            
+                            if (status.status === 'success') {
+                                this.updateProgress('Conversión completada', 100);
+                                resolve(urn);
+                            } else if (status.status === 'failed') {
+                                reject(new Error('Error en la conversión del archivo'));
+                            } else {
+                                // Aún procesando
+                                const progress = Math.min(status.progress ? parseFloat(status.progress.replace('%', '')) : 50, 95);
+                                this.updateProgress('Convirtiendo archivo CAD...', progress);
+                                
+                                // Verificar de nuevo en 2 segundos
+                                setTimeout(checkStatus, 2000);
+                            }
+                            
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+
+                    // Iniciar verificación
+                    checkStatus();
+                });
+            }
+
+            async loadModelInViewer(urn) {
+                if (!this.viewer) {
+                    throw new Error('Viewer no inicializado');
+                }
+
+                this.showLoading();
+                
+                return new Promise((resolve, reject) => {
+                    const documentId = `urn:${urn}`;
+                    
+                    Autodesk.Viewing.Document.load(documentId, (doc) => {
+                        const viewables = doc.getRoot().getDefaultGeometry();
+                        if (viewables) {
+                            this.viewer.loadDocumentNode(doc, viewables).then(() => {
+                                this.currentModel = this.viewer.model;
+                                resolve();
+                            }).catch(reject);
+                        } else {
+                            reject(new Error('No se encontraron geometrías visualizables'));
+                        }
+                    }, (errorCode, errorMsg) => {
+                        reject(new Error(`Error cargando documento: ${errorMsg} (${errorCode})`));
+                    });
+                });
+            }
+
+            // ========================================================================
+            // HERRAMIENTAS Y FUNCIONALIDADES
+            // ========================================================================
+
+            toggleMeasureTool() {
+                if (!this.viewer || !this.isModelLoaded) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const measureExtension = this.viewer.getExtension('Autodesk.Measure');
+                if (measureExtension) {
+                    if (measureExtension.isActive()) {
+                        measureExtension.exitMeasureMode();
+                        this.hideMeasurementDisplay();
+                        document.getElementById('measureBtn').classList.remove('btn-success');
+                        document.getElementById('measureBtn').classList.add('btn-secondary');
+                    } else {
+                        measureExtension.enterMeasureMode();
+                        this.showMeasurementDisplay();
+                        document.getElementById('measureBtn').classList.remove('btn-secondary');
+                        document.getElementById('measureBtn').classList.add('btn-success');
+                    }
+                }
+            }
+
+            toggleSectionTool() {
+                if (!this.viewer || !this.isModelLoaded) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const sectionExtension = this.viewer.getExtension('Autodesk.Section');
+                if (sectionExtension) {
+                    if (sectionExtension.isActive()) {
+                        sectionExtension.exitSectionMode();
+                        document.getElementById('sectionBtn').classList.remove('btn-success');
+                        document.getElementById('sectionBtn').classList.add('btn-secondary');
+                    } else {
+                        sectionExtension.enterSectionMode();
+                        document.getElementById('sectionBtn').classList.remove('btn-secondary');
+                        document.getElementById('sectionBtn').classList.add('btn-success');
+                    }
+                }
+            }
+
+            toggleExplode() {
+                if (!this.viewer || !this.isModelLoaded) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const explodeExtension = this.viewer.getExtension('Autodesk.Explode');
+                if (explodeExtension) {
+                    const currentScale = explodeExtension.getExplodeScale();
+                    if (currentScale > 0) {
+                        explodeExtension.setExplodeScale(0);
+                        document.getElementById('explodeBtn').classList.remove('btn-success');
+                        document.getElementById('explodeBtn').classList.add('btn-secondary');
+                    } else {
+                        explodeExtension.setExplodeScale(2.0);
+                        document.getElementById('explodeBtn').classList.remove('btn-secondary');
+                        document.getElementById('explodeBtn').classList.add('btn-success');
+                    }
+                }
+            }
+
+            toggleIsolate() {
+                if (!this.viewer || !this.isModelLoaded) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const selection = this.viewer.getSelection();
+                if (selection.length > 0) {
+                    this.viewer.isolate(selection);
+                    this.showNotification('Elementos aislados', 'info');
+                } else {
+                    this.viewer.showAll();
+                    this.showNotification('Mostrando todos los elementos', 'info');
+                }
+            }
+
+            takeScreenshot() {
+                if (!this.viewer || !this.isModelLoaded) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const screenshot = this.viewer.getScreenShot(1920, 1080, (blobURL) => {
+                    const link = document.createElement('a');
+                    link.href = blobURL;
+                    link.download = `cad-screenshot-${new Date().getTime()}.png`;
+                    link.click();
+                    this.showNotification('Captura de pantalla guardada', 'success');
+                });
+            }
+
+            showModelInfo() {
+                if (!this.viewer || !this.isModelLoaded || !this.currentModel) {
+                    this.showNotification('Debe cargar un modelo primero', 'warning');
+                    return;
+                }
+
+                const table = document.getElementById('infoTable');
+                const properties = this.getModelProperties();
+                
+                table.innerHTML = '';
+                
+                for (const [key, value] of Object.entries(properties)) {
+                    const row = table.insertRow();
+                    const cellKey = row.insertCell(0);
+                    const cellValue = row.insertCell(1);
+                    cellKey.textContent = key;
+                    cellValue.textContent = value;
+                }
+
+                document.getElementById('infoModal').style.display = 'flex';
+            }
+
+            // ========================================================================
+            // EVENTOS Y CALLBACKS
+            // ========================================================================
+
+            onSelectionChanged(event) {
+                const selection = event.dbIdArray;
+                if (selection.length > 0) {
+                    this.showNotification(`${selection.length} elemento(s) seleccionado(s)`, 'info');
+                }
+            }
+
+            onToolChanged(event) {
+                console.log('Tool changed:', event);
+            }
+
+            // ========================================================================
+            // UTILIDADES Y HELPERS
+            // ========================================================================
+
+            getFileExtension(filename) {
+                return filename.split('.').pop().toLowerCase();
+            }
+
+            getModelProperties() {
+                if (!this.currentModel) return {};
+
+                return {
+                    'Nombre': this.currentModel.getData().name || 'Sin nombre',
+                    'Tipo': this.currentModel.is2d() ? '2D Drawing' : '3D Model',
+                    'Unidades': this.currentModel.getUnitString() || 'N/A',
+                    'Objetos': this.currentModel.getObjectCount ? this.currentModel.getObjectCount() : 'N/A',
+                    'Bounding Box': this.formatBoundingBox(this.currentModel.getBoundingBox()),
+                    'Metadata': this.currentModel.getMetadata ? 'Disponible' : 'No disponible'
+                };
+            }
+
+            formatBoundingBox(bbox) {
+                if (!bbox) return 'N/A';
+                const size = bbox.getSize();
+                return `${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)}`;
+            }
+
+            updateModelStats() {
+                const statsDiv = document.getElementById('modelStats');
+                if (!this.currentModel) {
+                    statsDiv.innerHTML = '<div class="file-info"><div><strong>Estado:</strong> Sin modelo cargado</div></div>';
+                    return;
+                }
+
+                const properties = this.getModelProperties();
+                let html = '<div class="file-info">';
+                html += '<div><strong>Estado:</strong> Modelo cargado</div>';
+                html += `<div><strong>Tipo:</strong> ${properties.Tipo}</div>`;
+                html += `<div><strong>Objetos:</strong> ${properties.Objetos}</div>`;
+                html += `<div><strong>Unidades:</strong> ${properties.Unidades}</div>`;
+                html += '</div>';
+                
+                statsDiv.innerHTML = html;
+            }
+
+            toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const toggle = document.getElementById('sidebarToggle');
+                
+                if (sidebar.classList.contains('collapsed')) {
+                    sidebar.classList.remove('collapsed');
+                    toggle.textContent = '◀';
+                } else {
+                    sidebar.classList.add('collapsed');
+                    toggle.textContent = '▶';
+                }
+            }
+
+            // ========================================================================
+            // UI Y NOTIFICACIONES
+            // ========================================================================
+
+            showLoading() {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            }
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+
+            showProgress(title, progress) {
+                const modal = document.getElementById('progressModal');
+                const titleEl = document.getElementById('progressTitle');
+                const fillEl = document.getElementById('progressFill');
+                const textEl = document.getElementById('progressText');
+                
+                titleEl.textContent = title;
+                fillEl.style.width = progress + '%';
+                textEl.textContent = Math.round(progress) + '%';
+                modal.style.display = 'flex';
+            }
+
+            updateProgress(title, progress) {
+                const titleEl = document.getElementById('progressTitle');
+                const fillEl = document.getElementById('progressFill');
+                const textEl = document.getElementById('progressText');
+                
+                if (titleEl) titleEl.textContent = title;
+                if (fillEl) fillEl.style.width = progress + '%';
+                if (textEl) textEl.textContent = Math.round(progress) + '%';
+            }
+
+            hideProgress() {
+                document.getElementById('progressModal').style.display = 'none';
+            }
+
+            cancelUpload() {
+                this.uploadCancelled = true;
+                
+                // Cancelar request HTTP si existe
+                if (this.currentUpload) {
+                    this.currentUpload.abort();
+                    this.currentUpload = null;
+                }
+                
+                this.hideProgress();
+                this.showNotification('Proceso cancelado', 'warning');
+            }
+
+            showMeasurementDisplay() {
+                document.getElementById('measurementDisplay').style.display = 'block';
+            }
+
+            hideMeasurementDisplay() {
+                document.getElementById('measurementDisplay').style.display = 'none';
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                
+                document.getElementById('notificationContainer').appendChild(notification);
+                
+                // Mostrar notificación
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 100);
+                
+                // Ocultar después de 3 segundos
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                }, 3000);
+            }
+        }
+
+        // ============================================================================
+        // INICIALIZACIÓN DE LA APLICACIÓN
+        // ============================================================================
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            window.cadViewer = new CADViewer();
+        });
+
+        // Manejo de errores globales
+        window.addEventListener('error', (event) => {
+            console.error('Error global:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Promise rechazada:', event.reason);
+        });
+
+    </script>
+</body>
+</html>
